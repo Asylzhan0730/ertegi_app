@@ -1,16 +1,11 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'auth_storage.dart';
 
 class ApiService {
   static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:3000';
-    } else {
-      return 'https://ertegi-app.onrender.com';
-    }
+    return 'https://ertegiapp-production.up.railway.app';
   }
 
   static Future<Map<String, dynamic>> generateStory({
@@ -25,7 +20,8 @@ class ApiService {
       Uri.parse('$baseUrl/api/story/generate'),
       headers: {
         'Content-Type': 'application/json',
-        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+        if (token != null && token.isNotEmpty)
+          'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
         'prompt': prompt,
@@ -35,13 +31,7 @@ class ApiService {
       }),
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 400) {
-      throw Exception(data['message'] ?? data['error'] ?? 'AI error');
-    }
-
-    return data;
+    return jsonDecode(response.body);
   }
 
   static Future<Map<String, dynamic>> register({
@@ -59,13 +49,7 @@ class ApiService {
       }),
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 400) {
-      throw Exception(data['message'] ?? 'Register error');
-    }
-
-    return data;
+    return jsonDecode(response.body);
   }
 
   static Future<Map<String, dynamic>> login({
@@ -81,13 +65,7 @@ class ApiService {
       }),
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 400) {
-      throw Exception(data['message'] ?? 'Login error');
-    }
-
-    return data;
+    return jsonDecode(response.body);
   }
 
   static Future<Map<String, dynamic>> googleLogin({
@@ -105,13 +83,7 @@ class ApiService {
       }),
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 400) {
-      throw Exception(data['message'] ?? 'Google login error');
-    }
-
-    return data;
+    return jsonDecode(response.body);
   }
 
   static Future<Map<String, dynamic>> getStories() async {
@@ -121,18 +93,14 @@ class ApiService {
       Uri.parse('$baseUrl/api/stories'),
       headers: {
         'Content-Type': 'application/json',
-        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+        if (token != null && token.isNotEmpty)
+          'Authorization': 'Bearer $token',
       },
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 400) {
-      throw Exception(data['message'] ?? 'Stories error');
-    }
-
-    return data;
+    return jsonDecode(response.body);
   }
+
   static Future<String?> tts(String text) async {
     try {
       final response = await http.post(
@@ -143,31 +111,28 @@ class ApiService {
 
       final data = jsonDecode(response.body);
       return data['url'];
-    } catch (e) {
-      print("TTS API error: $e");
+    } catch (_) {
       return null;
     }
   }
-  static Future<Map<String, dynamic>> saveFilter(String ageCategory) async {
+
+  static Future<Map<String, dynamic>> saveFilter(
+    String ageCategory,
+  ) async {
     final token = await AuthStorage.getToken();
 
     final response = await http.post(
       Uri.parse('$baseUrl/api/filter'),
       headers: {
         'Content-Type': 'application/json',
-        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+        if (token != null && token.isNotEmpty)
+          'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
         'ageCategory': ageCategory,
       }),
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 400) {
-      throw Exception(data['message'] ?? 'Filter error');
-    }
-
-    return data;
+    return jsonDecode(response.body);
   }
 }
