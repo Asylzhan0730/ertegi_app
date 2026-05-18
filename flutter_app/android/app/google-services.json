@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "499615961316",
+    "project_id": "ertegi-9270d",
+    "storage_bucket": "ertegi-9270d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:499615961316:android:7007a1466fa1556dc15cf1",
+        "android_client_info": {
+          "package_name": "com.example.flutter_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "499615961316-5cduq48iknk9bpu8uuag1qqnu710c22v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZaM8zl3HgFrEEh7piMyW8TwbWrzS8p5s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "499615961316-5cduq48iknk9bpu8uuag1qqnu710c22v.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "499615961316-69ld7v4qmkt1itcjd9c9ac46qk94lv8s.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.flutterApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

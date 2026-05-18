@@ -1,0 +1,31 @@
+name: ertegi_app
+description: Kazakh fairy tale AI app
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Используем простой TTS
+  flutter_tts: ^4.0.2
+
+  # Остальные зависимости
+  http: ^1.2.2
+  shared_preferences: ^2.3.2
+  cupertino_icons: ^1.0.8
+  firebase_core: ^4.7.0
+  firebase_auth: ^6.4.0
+  google_sign_in: ^7.2.0
+  flutter_staggered_animations: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
