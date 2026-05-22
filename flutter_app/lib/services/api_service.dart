@@ -117,8 +117,8 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> saveFilter(
-    String ageCategory,
-  ) async {
+      String ageCategory,
+      ) async {
     final token = await AuthStorage.getToken();
 
     final response = await http.post(
@@ -134,5 +134,33 @@ class ApiService {
     );
 
     return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> saveStory({
+    required String prompt,
+    required String story,
+  }) async {
+    final token = await AuthStorage.getToken();
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/stories'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null && token.isNotEmpty)
+          'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'prompt': prompt,
+        'story': story,
+      }),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 400) {
+      throw Exception(data['message'] ?? 'Save story error');
+    }
+
+    return data;
   }
 }

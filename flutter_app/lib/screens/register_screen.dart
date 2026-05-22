@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../services/api_service.dart';
 import '../services/auth_storage.dart';
@@ -60,9 +61,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       setState(() => loading = true);
 
-      final provider = GoogleAuthProvider();
+      await GoogleSignIn.instance.initialize();
+
+      final googleUser = await GoogleSignIn.instance.authenticate();
+      final googleAuth = googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
+
       final userCredential =
-      await FirebaseAuth.instance.signInWithPopup(provider);
+      await FirebaseAuth.instance.signInWithCredential(credential);
 
       final user = userCredential.user;
 
@@ -71,10 +80,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
 
-      await AuthStorage.saveAuth(
-        token: await user.getIdToken() ?? '',
+      final data = await ApiService.googleLogin(
         email: user.email!,
-        ageCategory: ageCategory,
+        firebaseUid: user.uid,
+        name: user.displayName,
+      );
+
+      await AuthStorage.saveAuth(
+        token: data['token'],
+        email: data['email'] ?? user.email!,
+        ageCategory: data['ageCategory'] ?? ageCategory,
       );
 
       if (!mounted) return;
@@ -104,28 +119,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final ages = ['1-2', '3-4', '5+'];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Тіркелу'),
-      ),
+      appBar: AppBar(title: const Text('Тіркелу')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(22),
           child: Column(
             children: [
-              const Icon(
-                Icons.person_add,
-                size: 70,
-                color: Colors.deepPurple,
-              ),
+              const Icon(Icons.person_add, size: 70, color: Colors.deepPurple),
               const SizedBox(height: 18),
-              const Text(
-                'Аккаунт ашу',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-              ),
+              const Text('Аккаунт ашу',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
               const SizedBox(height: 28),
               TextField(
                 controller: emailCtrl,
-                keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   labelText: 'Email',
                   border: OutlineInputBorder(),
@@ -159,11 +165,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     selected: ageCategory == item,
                     onSelected: loading
                         ? null
-                        : (_) {
-                      setState(() {
-                        ageCategory = item;
-                      });
-                    },
+                        : (_) => setState(() => ageCategory = item),
                   );
                 }).toList(),
               ),

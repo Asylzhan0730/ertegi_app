@@ -8,7 +8,8 @@ const db = require("./db");
 const authMiddleware = require("./middleware");
 const { generateStoryWithAI } = require("./openaiClient");
 const { searchErtegiOnInternet } = require("./storySearch");
-const { generateSpeechUrl } = require('./tts');
+const { generateSpeechUrl } = require("./tts");
+
 const app = express();
 
 app.use(cors());
@@ -20,17 +21,17 @@ app.get("/", (req, res) => {
     message: "Ertegi AI backend is running",
   });
 });
-app.post('/api/tts', async (req, res) => {
+
+app.post("/api/tts", async (req, res) => {
   try {
     const { text } = req.body;
-
     const url = await generateSpeechUrl(text);
-
     res.json({ url });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
+
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { email, password, ageCategory } = req.body;
@@ -245,6 +246,8 @@ app.post("/api/filter", authMiddleware, (req, res) => {
 
 app.post("/api/story/generate", authMiddleware, async (req, res) => {
   try {
+    console.log("GENERATE USER:", req.user);
+
     const prompt = req.body.prompt || "Қазақша қысқа ертегі жаз";
     const ageCategory = req.body.ageCategory || "5+";
     const category = req.body.category || "Классикалық ертегі";
@@ -269,7 +272,14 @@ app.post("/api/story/generate", authMiddleware, async (req, res) => {
     if (req.user) {
       db.run(
         `INSERT INTO stories (user_id, prompt, story, age_category, category) VALUES (?, ?, ?, ?, ?)`,
-        [req.user.id, prompt, story, ageCategory, category]
+        [req.user.id, prompt, story, ageCategory, category],
+        function (err) {
+          if (err) {
+            console.log("AUTO SAVE STORY ERROR:", err.message);
+          } else {
+            console.log("AUTO SAVED STORY ID:", this.lastID);
+          }
+        }
       );
     }
 
@@ -292,6 +302,46 @@ app.post("/api/story/generate", authMiddleware, async (req, res) => {
       error: e.response?.data || e.message,
     });
   }
+});
+
+app.post("/api/stories", authMiddleware, (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Авторизация керек",
+    });
+  }
+
+  const { prompt, story } = req.body;
+
+  if (!story) {
+    return res.status(400).json({
+      success: false,
+      message: "story жоқ",
+    });
+  }
+
+  db.run(
+    `INSERT INTO stories (user_id, prompt, story, age_category, category) VALUES (?, ?, ?, ?, ?)`,
+    [req.user.id, prompt || "", story, "5+", "manual"],
+    function (err) {
+      if (err) {
+        console.log("MANUAL SAVE STORY ERROR:", err.message);
+
+        return res.status(500).json({
+          success: false,
+          message: "Ертегі сақталмады",
+          error: err.message,
+        });
+      }
+
+      res.json({
+        success: true,
+        id: this.lastID,
+        message: "Ертегі сақталды",
+      });
+    }
+  );
 });
 
 app.get("/api/stories", authMiddleware, (req, res) => {

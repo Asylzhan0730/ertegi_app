@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../services/api_service.dart';
 import '../services/auth_storage.dart';
@@ -30,10 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => loading = true);
 
     try {
-      final data = await ApiService.login(
-        email: email,
-        password: password,
-      );
+      final data = await ApiService.login(email: email, password: password);
 
       await AuthStorage.saveAuth(
         token: data['token'],
@@ -59,26 +57,30 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       setState(() => loading = true);
 
-      final provider = GoogleAuthProvider();
+      await GoogleSignIn.instance.initialize();
+
+      final googleUser = await GoogleSignIn.instance.authenticate();
+      final googleAuth = googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
+
       final userCredential =
-      await FirebaseAuth.instance.signInWithPopup(provider);
+      await FirebaseAuth.instance.signInWithCredential(credential);
 
       final user = userCredential.user;
-
-      if (user == null || user.email == null) {
-        showError('Google аккаунт табылмады');
-        return;
-      }
+      if (user == null) throw Exception('Google user not found');
 
       final data = await ApiService.googleLogin(
-        email: user.email!,
+        email: user.email ?? '',
         firebaseUid: user.uid,
         name: user.displayName,
       );
 
       await AuthStorage.saveAuth(
         token: data['token'],
-        email: data['email'],
+        email: data['email'] ?? user.email ?? '',
         ageCategory: data['ageCategory'] ?? '5+',
       );
 
@@ -112,31 +114,19 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Кіру'),
-      ),
+      appBar: AppBar(title: const Text('Кіру')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(22),
           child: Column(
             children: [
-              const Icon(
-                Icons.auto_stories,
-                size: 70,
-                color: Colors.deepPurple,
-              ),
+              const Icon(Icons.auto_stories, size: 70, color: Colors.deepPurple),
               const SizedBox(height: 18),
-              const Text(
-                'Ертегі AI',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              const Text('Ертегі AI',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
               const SizedBox(height: 28),
               TextField(
                 controller: emailCtrl,
-                keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   labelText: 'Email',
                   border: OutlineInputBorder(),

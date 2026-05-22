@@ -40,6 +40,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool loading = false;
   bool isAuth = false;
 
+  String lastPrompt = '';
+  String lastStory = '';
+
   String? email;
   String ageCategory = '5+';
   String selectedCategoryKey = 'classic';
@@ -102,8 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
     isAuth = widget.isAuth;
     messages.addAll(initialMessages);
     loadAuth();
-
-
   }
 
   final List<ChatMessage> messages = [];
@@ -193,6 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
       isAuth = false;
       email = null;
       ageCategory = '5+';
+      lastPrompt = '';
+      lastStory = '';
       messages.clear();
       messages.add(
         ChatMessage(
@@ -234,6 +237,45 @@ class _HomeScreenState extends State<HomeScreen> {
         'Фильтр сақтау қатесі: $e',
         'Ошибка сохранения фильтра: $e',
         'Filter save error: $e',
+      ));
+    }
+  }
+
+  Future<void> saveCurrentStory() async {
+    if (!isAuth) {
+      addBot(tr(
+        'Ертегіні сақтау үшін кіріңіз немесе тіркеліңіз.',
+        'Чтобы сохранить сказку, войдите или зарегистрируйтесь.',
+        'Sign in or register to save the story.',
+      ));
+      return;
+    }
+
+    if (lastStory.trim().isEmpty) {
+      addBot(tr(
+        'Алдымен ертегі құрастырыңыз.',
+        'Сначала создайте сказку.',
+        'Create a story first.',
+      ));
+      return;
+    }
+
+    try {
+      await ApiService.saveStory(
+        prompt: lastPrompt,
+        story: lastStory,
+      );
+
+      addBot(tr(
+        '📚 Ертегі тарихқа сақталды!',
+        '📚 Сказка сохранена в историю!',
+        '📚 Story saved to history!',
+      ));
+    } catch (e) {
+      addBot(tr(
+        'Сақтау қатесі: $e',
+        'Ошибка сохранения: $e',
+        'Save error: $e',
       ));
     }
   }
@@ -323,6 +365,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final story = data['story']?.toString();
 
+      lastPrompt = text;
+      lastStory = story ?? '';
+
       setState(() {
         messages.add(
           ChatMessage(
@@ -337,7 +382,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       });
-
     } catch (e) {
       setState(() {
         messages.add(
@@ -615,7 +659,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 👶 AGE
           Text(
             tr('👶 Жас таңдаңыз:', '👶 Выберите возраст:', '👶 Choose age:'),
             style: const TextStyle(
@@ -624,7 +667,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 10),
-
           Wrap(
             spacing: 8,
             children: ageItems.map((item) {
@@ -642,31 +684,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 selected: isSelected,
                 onSelected: (_) => saveFilter(item),
-
-                // 🎯 КРАСИВЫЙ CLASSIC СТИЛЬ
                 selectedColor: const Color(0xFF6A1B9A),
                 backgroundColor: isDark
                     ? const Color(0xFF2A2A2A)
                     : Colors.grey.shade200,
-
                 side: BorderSide(
                   color: isSelected
                       ? const Color(0xFF6A1B9A)
                       : (isDark ? Colors.white24 : Colors.grey.shade400),
                 ),
-
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-
                 showCheckmark: false,
               );
             }).toList(),
           ),
-
           const SizedBox(height: 14),
-
-          // 📚 CATEGORY
           Text(
             tr('📚 Ертегі түрі:', '📚 Тип сказки:', '📚 Story type:'),
             style: const TextStyle(
@@ -675,7 +709,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 10),
-
           DropdownButtonFormField<String>(
             value: selectedCategoryKey,
             decoration: InputDecoration(
@@ -686,8 +719,7 @@ class _HomeScreenState extends State<HomeScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             ),
             items: categoryKeys.map((key) {
               return DropdownMenuItem(
@@ -764,10 +796,31 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-
           const SizedBox(height: 8),
-
-
+          if (isAuth)
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: FilledButton.icon(
+                onPressed: loading || lastStory.isEmpty ? null : saveCurrentStory,
+                icon: const Icon(Icons.bookmark_add, color: Colors.white),
+                label: Text(
+                  tr(
+                    'Тарихқа сақтау',
+                    'Сохранить в историю',
+                    'Save to history',
+                  ),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF4CAF50),
+                  disabledBackgroundColor: Colors.grey,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -912,7 +965,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       text: msg.text,
                       isUser: msg.isUser,
                     ),
-
                     if (!msg.isUser)
                       Padding(
                         padding: const EdgeInsets.only(left: 8, bottom: 10),
