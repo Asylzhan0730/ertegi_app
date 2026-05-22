@@ -269,7 +269,7 @@ app.post("/api/story/generate", authMiddleware, async (req, res) => {
       originalStory: original?.text || null,
     });
 
-   
+
 
     res.json({
       success: true,
@@ -309,9 +309,9 @@ app.post("/api/stories", authMiddleware, (req, res) => {
     });
   }
 
-  db.run(
-    `INSERT INTO stories (user_id, prompt, story, age_category, category) VALUES (?, ?, ?, ?, ?)`,
-    [req.user.id, prompt || "", story, "5+", "manual"],
+    db.run(
+        `INSERT INTO stories (user_id, prompt, story, age_category, category, liked) VALUES (?, ?, ?, ?, ?, ?)`,
+         [req.user.id, prompt || "", story, "5+", "manual", 0],
     function (err) {
       if (err) {
         console.log("MANUAL SAVE STORY ERROR:", err.message);
@@ -354,6 +354,61 @@ app.get("/api/stories", authMiddleware, (req, res) => {
       res.json({
         success: true,
         stories: rows,
+      });
+    }
+  );
+});
+app.delete("/api/stories/:id", authMiddleware, (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Авторизация керек",
+    });
+  }
+
+  db.run(
+    `DELETE FROM stories WHERE id = ? AND user_id = ?`,
+    [req.params.id, req.user.id],
+    function (err) {
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Өшіру қатесі",
+        });
+      }
+
+      res.json({
+        success: true,
+        deleted: this.changes,
+      });
+    }
+  );
+});
+
+app.post("/api/stories/:id/like", authMiddleware, (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Авторизация керек",
+    });
+  }
+
+  db.run(
+    `UPDATE stories
+     SET liked = CASE WHEN liked = 1 THEN 0 ELSE 1 END
+     WHERE id = ? AND user_id = ?`,
+    [req.params.id, req.user.id],
+    function (err) {
+      if (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Like қатесі",
+        });
+      }
+
+      res.json({
+        success: true,
+        updated: this.changes,
       });
     }
   );

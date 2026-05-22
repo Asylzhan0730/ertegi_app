@@ -24,10 +24,13 @@ db.serialize(() => {
       story TEXT NOT NULL,
       age_category TEXT DEFAULT '5+',
       category TEXT DEFAULT 'Классикалық ертегі',
+      liked INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES users(id)
     )
   `);
+
+  db.run(`ALTER TABLE stories ADD COLUMN liked INTEGER DEFAULT 0`, () => {});
 });
 
 module.exports = db;
