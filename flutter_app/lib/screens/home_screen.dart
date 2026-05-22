@@ -12,10 +12,14 @@ import 'register_screen.dart';
 class ChatMessage {
   final String text;
   final bool isUser;
+  final bool canSave;
+  final String? prompt;
 
   ChatMessage({
     required this.text,
     required this.isUser,
+    this.canSave = false,
+    this.prompt,
   });
 }
 
@@ -40,9 +44,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool loading = false;
   bool isAuth = false;
 
-  String lastPrompt = '';
-  String lastStory = '';
-
   String? email;
   String ageCategory = '5+';
   String selectedCategoryKey = 'classic';
@@ -56,6 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
     'educational',
     'short',
   ];
+
+  final List<ChatMessage> messages = [];
 
   String tr(String kk, String ru, String en) {
     switch (languageNotifier.value) {
@@ -106,8 +109,6 @@ class _HomeScreenState extends State<HomeScreen> {
     messages.addAll(initialMessages);
     loadAuth();
   }
-
-  final List<ChatMessage> messages = [];
 
   Future<void> loadAuth() async {
     final token = await AuthStorage.getToken();
@@ -194,8 +195,6 @@ class _HomeScreenState extends State<HomeScreen> {
       isAuth = false;
       email = null;
       ageCategory = '5+';
-      lastPrompt = '';
-      lastStory = '';
       messages.clear();
       messages.add(
         ChatMessage(
@@ -241,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> saveCurrentStory() async {
+  Future<void> saveMessageStory(ChatMessage msg) async {
     if (!isAuth) {
       addBot(tr(
         'Ертегіні сақтау үшін кіріңіз немесе тіркеліңіз.',
@@ -251,19 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    if (lastStory.trim().isEmpty) {
-      addBot(tr(
-        'Алдымен ертегі құрастырыңыз.',
-        'Сначала создайте сказку.',
-        'Create a story first.',
-      ));
-      return;
-    }
-
     try {
       await ApiService.saveStory(
-        prompt: lastPrompt,
-        story: lastStory,
+        prompt: msg.prompt ?? '',
+        story: msg.text,
       );
 
       addBot(tr(
@@ -365,9 +355,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final story = data['story']?.toString();
 
-      lastPrompt = text;
-      lastStory = story ?? '';
-
       setState(() {
         messages.add(
           ChatMessage(
@@ -379,6 +366,8 @@ class _HomeScreenState extends State<HomeScreen> {
             )
                 : story,
             isUser: false,
+            canSave: story != null && story.isNotEmpty,
+            prompt: text,
           ),
         );
       });
@@ -387,9 +376,9 @@ class _HomeScreenState extends State<HomeScreen> {
         messages.add(
           ChatMessage(
             text: tr(
-              'Қате шықты: $e\n\nТексер:\n1) backend қосулы ма: npm start\n2) OPENROUTER_API_KEY бар ма\n3) API URL дұрыс па: http://localhost:3000',
-              'Ошибка: $e\n\nПроверь:\n1) включён ли backend: npm start\n2) есть ли OPENROUTER_API_KEY\n3) правильный ли API URL: http://localhost:3000',
-              'Error: $e\n\nCheck:\n1) is backend running: npm start\n2) is OPENROUTER_API_KEY set\n3) is API URL correct: http://localhost:3000',
+              'Қате шықты: $e\n\nТексер:\n1) backend қосулы ма\n2) OPENROUTER_API_KEY бар ма\n3) API URL дұрыс па',
+              'Ошибка: $e\n\nПроверь:\n1) включён ли backend\n2) есть ли OPENROUTER_API_KEY\n3) правильный ли API URL',
+              'Error: $e\n\nCheck:\n1) is backend running\n2) is OPENROUTER_API_KEY set\n3) is API URL correct',
             ),
             isUser: false,
           ),
@@ -797,30 +786,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          if (isAuth)
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: FilledButton.icon(
-                onPressed: loading || lastStory.isEmpty ? null : saveCurrentStory,
-                icon: const Icon(Icons.bookmark_add, color: Colors.white),
-                label: Text(
-                  tr(
-                    'Тарихқа сақтау',
-                    'Сохранить в историю',
-                    'Save to history',
-                  ),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
-                  disabledBackgroundColor: Colors.grey,
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -915,6 +880,49 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget buildStoryActions(ChatMessage msg) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8, bottom: 10),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          IconButton.filledTonal(
+            onPressed: () {
+              tts.speak(msg.text);
+            },
+            icon: const Icon(Icons.play_arrow),
+            tooltip: 'Оқып беру',
+          ),
+          IconButton.filledTonal(
+            onPressed: () {
+              tts.pause();
+            },
+            icon: const Icon(Icons.pause),
+            tooltip: 'Пауза',
+          ),
+          IconButton.filledTonal(
+            onPressed: () {
+              tts.stop();
+            },
+            icon: const Icon(Icons.stop),
+            tooltip: 'Тоқтату',
+          ),
+          if (msg.canSave)
+            FilledButton.icon(
+              onPressed: () => saveMessageStory(msg),
+              icon: const Icon(Icons.bookmark_add),
+              label: Text(tr(
+                'Тарихқа сақтау',
+                'Сохранить в историю',
+                'Save to history',
+              )),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     inputCtrl.dispose();
@@ -965,38 +973,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       text: msg.text,
                       isUser: msg.isUser,
                     ),
-                    if (!msg.isUser)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8, bottom: 10),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton.filledTonal(
-                              onPressed: () {
-                                tts.speak(msg.text);
-                              },
-                              icon: const Icon(Icons.play_arrow),
-                              tooltip: 'Оқып беру',
-                            ),
-                            const SizedBox(width: 6),
-                            IconButton.filledTonal(
-                              onPressed: () {
-                                tts.pause();
-                              },
-                              icon: const Icon(Icons.pause),
-                              tooltip: 'Пауза',
-                            ),
-                            const SizedBox(width: 6),
-                            IconButton.filledTonal(
-                              onPressed: () {
-                                tts.stop();
-                              },
-                              icon: const Icon(Icons.stop),
-                              tooltip: 'Тоқтату',
-                            ),
-                          ],
-                        ),
-                      ),
+                    if (!msg.isUser) buildStoryActions(msg),
                   ],
                 );
               },

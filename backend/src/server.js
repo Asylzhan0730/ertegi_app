@@ -269,19 +269,7 @@ app.post("/api/story/generate", authMiddleware, async (req, res) => {
       originalStory: original?.text || null,
     });
 
-    if (req.user) {
-      db.run(
-        `INSERT INTO stories (user_id, prompt, story, age_category, category) VALUES (?, ?, ?, ?, ?)`,
-        [req.user.id, prompt, story, ageCategory, category],
-        function (err) {
-          if (err) {
-            console.log("AUTO SAVE STORY ERROR:", err.message);
-          } else {
-            console.log("AUTO SAVED STORY ID:", this.lastID);
-          }
-        }
-      );
-    }
+   
 
     res.json({
       success: true,
